@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onchain Lead Journal – Dashboard</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 1rem; }
+    .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    h1 { font-size: 1.25rem; margin: 0; }
+    .balance { font-size: 0.9rem; color: #333; background: #e8f4f8; padding: 0.4rem 0.75rem; border-radius: 6px; }
+    .balance strong { color: #0d47a1; }
+    .section { margin-bottom: 1.5rem; }
+    .section h2 { font-size: 1rem; margin: 0 0 0.5rem 0; color: #555; }
+    button { padding: 0.4rem 0.75rem; font-size: 0.875rem; cursor: pointer; background: #1a1a2e; color: #eee; border: none; border-radius: 6px; }
+    button:hover { background: #16213e; }
+    button.sm { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #eee; }
+    th { color: #555; font-weight: 600; }
+    .lead-id { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; max-width: 200px; }
+    .row-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .response-box { margin-top: 1rem; padding: 1.25rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .response-box.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    .response-box .raw-toggle { font-size: 0.75rem; margin-bottom: 0.5rem; }
+    .response-box .raw-toggle a { color: #64748b; cursor: pointer; }
+    .response-box .raw-toggle a:hover { text-decoration: underline; }
+    .response-box pre.raw { display: none; font-family: ui-monospace, monospace; font-size: 0.8rem; white-space: pre-wrap; word-break: break-all; max-height: 30vh; overflow: auto; margin: 0; }
+    .response-box.show-raw pre.raw { display: block; }
+    .response-box.show-raw .formatted { display: none; }
+    .formatted { line-height: 1.5; }
+    .formatted .lead-head { font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem; }
+    .formatted .lead-head strong { color: #0f172a; }
+    .formatted .timeline-list { list-style: none; padding: 0; margin: 0.75rem 0 0 0; }
+    .formatted .timeline-list li { padding: 0.6rem 0; border-bottom: 1px solid #e2e8f0; display: flex; align-items: flex-start; gap: 0.75rem; }
+    .formatted .timeline-list li:last-child { border-bottom: none; }
+    .formatted .timeline-list .icon { width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .formatted .timeline-list .icon.call { background: #dbeafe; color: #1d4ed8; }
+    .formatted .timeline-list .icon.msg { background: #dcfce7; color: #15803d; }
+    .formatted .timeline-list .time { font-size: 0.8rem; color: #64748b; white-space: nowrap; }
+    .formatted .timeline-list .body { flex: 1; }
+    .formatted .timeline-list .body strong { color: #0f172a; }
+    .formatted .proof-summary { display: grid; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; }
+    .formatted .proof-summary span { color: #64748b; }
+    .formatted .proof-summary strong { color: #0f172a; }
+    .formatted .verification { margin-top: 1rem; padding: 0.75rem; background: #ecfdf5; border-radius: 6px; font-size: 0.85rem; color: #065f46; }
+    .formatted .success-msg { font-size: 0.95rem; color: #0f172a; }
+    .formatted .success-msg .tx { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; color: #475569; margin-top: 0.35rem; }
+    .empty-leads { color: #888; font-size: 0.9rem; padding: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Onchain Lead Journal</h1>
+    <div class="balance" id="balance">0G: —</div>
+  </div>
+
+  <div class="section">
+    <h2>Leads</h2>
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+      <input type="text" id="phoneInput" placeholder="+12138207310" style="padding: 0.4rem 0.75rem; font-size: 0.875rem; width: 12rem; border: 1px solid #ccc; border-radius: 6px;" />
+      <button type="button" id="btnMakeCall">Make a call</button>
+      <button type="button" id="btnCreate">Create lead</button>
+      <button type="button" id="btnRefresh" class="sm">Refresh list</button>
+    </div>
+    <table style="margin-top: 0.75rem;">
+      <thead>
+        <tr>
+          <th>Lead ID</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="leadsBody">
+        <tr><td colspan="2" class="empty-leads">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Response</h2>
+    <div class="response-box" id="responseBox">
+      <div class="raw-toggle"><a id="rawToggle" style="display: none;">Show raw JSON</a></div>
+      <div class="formatted" id="formatted"></div>
+      <pre class="raw" id="raw"></pre>
+    </div>
+  </div>
+
+  <script>
+    const responseBox = document.getElementById('responseBox');
+    const formattedEl = document.getElementById('formatted');
+    const rawEl = document.getElementById('raw');
+    const rawToggle = document.getElementById('rawToggle');
+    const leadsBody = document.getElementById('leadsBody');
+    const balanceEl = document.getElementById('balance');
+
+    function showResponse(html, rawJson, isError) {
+      responseBox.classList.toggle('error', !!isError);
+      formattedEl.innerHTML = html;
+      rawEl.textContent = rawJson || '';
+      rawToggle.style.display = rawJson ? 'inline' : 'none';
+      responseBox.classList.remove('show-raw');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', hour12: false });
+    }
+
+    function formatDuration(sec) {
+      if (sec == null) return '';
+      if (sec < 60) return sec + 's';
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return s ? m + 'm ' + s + 's' : m + 'm';
+    }
+
+    function eventLabel(type) {
+      const t = { call_completed: 'Call completed', call_failed: 'Call failed', whatsapp_sent: 'WhatsApp sent', whatsapp_reply: 'WhatsApp reply' };
+      return t[type] || type;
+    }
+
+    function eventIcon(type) {
+      if (type && type.startsWith('call')) return '📞';
+      return '💬';
+    }
+
+    function formatTimeline(data) {
+      const timeline = data.timeline || [];
+      const root = data.verification_root;
+      let html = '<div class="lead-head"><strong>Lead</strong> ' + escapeHtml(data.lead_id) + ' · Created ' + formatDate(data.created_at) + '</div>';
+      if (timeline.length === 0) {
+        html += '<p style="margin: 0.5rem 0 0 0; color: #64748b;">No events yet.</p>';
+      } else {
+        html += '<ul class="timeline-list">';
+        timeline.forEach(ev => {
+          const iconClass = (ev.type || '').startsWith('call') ? 'call' : 'msg';
+          const duration = ev.duration_seconds != null ? ' (' + formatDuration(ev.duration_seconds) + ')' : '';
+          html += '<li><span class="icon ' + iconClass + '">' + eventIcon(ev.type) + '</span><span class="time">' + formatDate(ev.timestamp) + '</span><div class="body"><strong>' + eventLabel(ev.type) + '</strong> · ' + escapeHtml(ev.agent) + ' · ' + escapeHtml(ev.outcome) + duration + '</div></li>';
+        });
+        html += '</ul>';
+      }
+      if (root) {
+        html += '<div class="verification">✓ Verifiable on 0G Storage · ' + escapeHtml(root) + '</div>';
+      }
+      return html;
+    }
+
+    function formatProof(data) {
+      let html = '<div class="lead-head"><strong>Proof of Outreach</strong> · Lead ' + escapeHtml(data.lead_id) + '</div>';
+      html += '<div class="proof-summary">';
+      html += '<span>Touchpoints:</span> <strong>' + (data.total_touchpoints || 0) + '</strong> total · ' + (data.calls_count || 0) + ' calls · ' + (data.whatsapp_count || 0) + ' WhatsApp';
+      if (data.date_range && (data.date_range.first || data.date_range.last)) {
+        html += '<br><span>Period:</span> ' + formatDate(data.date_range.first) + ' → ' + formatDate(data.date_range.last);
+      }
+      if (data.final_outcome) {
+        html += '<br><span>Final outcome:</span> <strong>' + escapeHtml(data.final_outcome) + '</strong>';
+      }
+      html += '</div>';
+      if (data.events && data.events.length) {
+        html += '<ul class="timeline-list">';
+        data.events.forEach(ev => {
+          const iconClass = (ev.type || '').startsWith('call') ? 'call' : 'msg';
+          html += '<li><span class="icon ' + iconClass + '">' + eventIcon(ev.type) + '</span><span class="time">' + formatDate(ev.timestamp) + '</span><div class="body"><strong>' + eventLabel(ev.type) + '</strong> · ' + escapeHtml(ev.agent) + ' · ' + escapeHtml(ev.outcome) + '</div></li>';
+        });
+        html += '</ul>';
+      }
+      if (data.verification_statement || data.verification_root) {
+        html += '<div class="verification">✓ ' + escapeHtml(data.verification_statement || 'Verifiable on 0G Storage') + (data.verification_root ? ' · ' + escapeHtml(data.verification_root) : '') + '</div>';
+      }
+      return html;
+    }
+
+    function formatCreated(kind, data) {
+      const id = data.lead_id || data.event_id;
+      const tx = data.storage_tx_id;
+      let msg = kind === 'lead' ? 'Lead created.' : 'Event recorded.';
+      msg += ' <strong>' + escapeHtml(id) + '</strong>';
+      if (tx) msg += '<div class="tx">' + escapeHtml(tx) + '</div>';
+      return '<div class="success-msg">' + msg + '</div>';
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      const div = document.createElement('div');
+      div.textContent = String(s);
+      return div.innerHTML;
+    }
+
+    async function api(path, options = {}) {
+      const res = await fetch(path, {
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        ...options
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`${res.status}: ${text}`);
+      try { return JSON.parse(text); } catch { return text; }
+    }
+
+    async function loadBalance() {
+      try {
+        const d = await api('/wallet/balance');
+        balanceEl.innerHTML = '<strong>' + (d.balance_og ?? '—') + ' 0G</strong> (testnet)';
+      } catch (e) {
+        balanceEl.textContent = '0G: error';
+      }
+    }
+
+    async function loadLeads() {
+      try {
+        const d = await api('/leads');
+        const ids = d.lead_ids || [];
+        if (ids.length === 0) {
+          leadsBody.innerHTML = '<tr><td colspan="2" class="empty-leads">No leads yet. Create one above.</td></tr>';
+          return;
+        }
+        leadsBody.innerHTML = ids.map(id => `
+          <tr>
+            <td class="lead-id">${escapeHtml(id)}</td>
+            <td class="row-actions">
+              <button type="button" class="sm" data-action="call" data-lead-id="${escapeHtml(id)}">call</button>
+              <button type="button" class="sm" data-action="msg" data-lead-id="${escapeHtml(id)}">msg</button>
+              <button type="button" class="sm" data-action="timeline" data-lead-id="${escapeHtml(id)}">timeline</button>
+              <button type="button" class="sm" data-action="proof" data-lead-id="${escapeHtml(id)}">proof</button>
+            </td>
+          </tr>
+        `).join('');
+        leadsBody.querySelectorAll('[data-action]').forEach(btn => {
+          btn.addEventListener('click', () => runAction(btn.dataset.action, btn.dataset.leadId));
+        });
+      } catch (e) {
+        leadsBody.innerHTML = '<tr><td colspan="2" class="empty-leads">Error: ' + escapeHtml(e.message) + '</td></tr>';
+      }
+    }
+
+    rawToggle.onclick = () => responseBox.classList.toggle('show-raw');
+
+    async function runAction(action, leadId) {
+      const labels = { call: 'Posting call…', msg: 'Posting msg…', timeline: 'Loading timeline…', proof: 'Loading proof…' };
+      showResponse('<p style="color:#64748b;margin:0;">' + (labels[action] || '…') + '</p>', '', false);
+      try {
+        let data;
+        if (action === 'call') {
+          data = await api('/events', {
+            method: 'POST',
+            body: JSON.stringify({
+              lead_id: leadId,
+              type: 'call_completed',
+              outcome: 'interested',
+              agent: 'Lisa',
+              duration_seconds: 142,
+              content: 'Call transcript summary'
+            })
+          });
+          showResponse(formatCreated('event', data), JSON.stringify(data, null, 2), false);
+          loadBalance();
+        } else if (action === 'msg') {
+          data = await api('/events', {
+            method: 'POST',
+            body: JSON.stringify({
+              lead_id: leadId,
+              type: 'whatsapp_sent',
+              outcome: 'pending',
+              agent: 'WhatsApp-bot',
+              content: 'Hi, follow-up message'
+            })
+          });
+          showResponse(formatCreated('event', data), JSON.stringify(data, null, 2), false);
+          loadBalance();
+        } else if (action === 'timeline') {
+          data = await api('/leads/' + encodeURIComponent(leadId));
+          showResponse(formatTimeline(data), JSON.stringify(data, null, 2), false);
+        } else if (action === 'proof') {
+          data = await api('/leads/' + encodeURIComponent(leadId) + '/proof');
+          showResponse(formatProof(data), JSON.stringify(data, null, 2), false);
+        }
+      } catch (e) {
+        showResponse(escapeHtml(e.message), '', true);
+        if (action === 'call' || action === 'msg') loadBalance();
+      }
+    }
+
+    document.getElementById('btnMakeCall').onclick = async () => {
+      const phone = (document.getElementById('phoneInput').value || '').trim();
+      if (!phone) {
+        showResponse('Enter a phone number (e.g. +12138207310).', '', true);
+        return;
+      }
+      showResponse('<p style="color:#64748b;margin:0;">Starting call…</p>', '', false);
+      try {
+        const data = await api('/calls/start', {
+          method: 'POST',
+          body: JSON.stringify({ phone: phone })
+        });
+        const msg = 'Call started. <strong>' + escapeHtml(data.lead_id) + '</strong> · Retell <code>' + escapeHtml(data.call_id || '') + '</code>. Results will be written to 0G when the call ends.';
+        showResponse('<div class="success-msg">' + msg + '</div>', JSON.stringify(data, null, 2), false);
+        loadLeads();
+        loadBalance();
+      } catch (e) {
+        showResponse(escapeHtml(e.message), '', true);
+        loadLeads();
+        loadBalance();
+      }
+    };
+
+    document.getElementById('btnCreate').onclick = async () => {
+      showResponse('<p style="color:#64748b;margin:0;">Creating lead…</p>', '', false);
+      try {
+        const leadId = crypto.randomUUID();
+        const data = await api('/leads', {
+          method: 'POST',
+          body: JSON.stringify({ lead_id: leadId, phone: '+5215512345678' })
+        });
+        showResponse(formatCreated('lead', data), JSON.stringify(data, null, 2), false);
+        loadLeads();
+        loadBalance();
+      } catch (e) {
+        showResponse(escapeHtml(e.message), '', true);
+        loadBalance();
+      }
+    };
+
+    document.getElementById('btnRefresh').onclick = () => { loadLeads(); loadBalance(); };
+
+    loadBalance();
+    loadLeads();
+  </script>
+</body>
+</html>
