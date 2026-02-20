@@ -4,86 +4,251 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Onchain Lead Journal – Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --background: hsl(220, 20%, 4%);
+      --foreground: hsl(160, 10%, 92%);
+      --card: hsl(220, 18%, 7%);
+      --card-foreground: hsl(160, 10%, 92%);
+      --primary: hsl(142, 72%, 50%);
+      --primary-foreground: hsl(220, 20%, 4%);
+      --secondary: hsl(220, 16%, 12%);
+      --secondary-foreground: hsl(160, 10%, 80%);
+      --muted: hsl(220, 14%, 10%);
+      --muted-foreground: hsl(220, 10%, 50%);
+      --border: hsl(220, 14%, 14%);
+      --destructive: hsl(0, 72%, 51%);
+      --radius: 0.5rem;
+      --glow-primary: 0 0 30px hsla(142, 72%, 50%, 0.15);
+    }
     * { box-sizing: border-box; }
-    html { font-size: 150%; }
-    body { font-family: system-ui, sans-serif; max-width: 1170px; margin: 0 auto; padding: 1rem; }
-    .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-    h1 { font-size: 1.25rem; margin: 0; }
-    .balance { font-size: 0.9rem; color: #333; background: #e8f4f8; padding: 0.4rem 0.75rem; border-radius: 6px; }
-    .balance strong { color: #0d47a1; }
-    .section { margin-bottom: 1.5rem; }
-    .section h2 { font-size: 1rem; margin: 0 0 0.5rem 0; color: #555; }
-    button { padding: 0.4rem 0.75rem; font-size: 0.875rem; cursor: pointer; background: #1a1a2e; color: #eee; border: none; border-radius: 6px; }
-    button:hover { background: #16213e; }
+    html { font-size: 135%; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app {
+      max-width: 1170px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    h1 { font-size: 1.25rem; font-weight: 700; margin: 0; }
+    .balance {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: var(--radius);
+      background: var(--secondary);
+      color: var(--secondary-foreground);
+    }
+    .balance strong { color: var(--primary); }
+    .balance .muted { color: var(--muted-foreground); }
+    .card {
+      background: var(--card);
+      color: var(--card-foreground);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      margin-bottom: 1.5rem;
+    }
+    .card-header { padding: 1.25rem 1.25rem 0.5rem; }
+    .card-title { font-size: 1rem; font-weight: 600; margin: 0; }
+    .card-content { padding: 0.5rem 1.25rem 1.25rem; }
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    input[type="text"] {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      padding: 0.4rem 0.75rem;
+      width: 12rem;
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--foreground);
+    }
+    input[type="text"]::placeholder { color: var(--muted-foreground); }
+    button {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.4rem 0.75rem;
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius);
+      transition: background 0.2s, color 0.2s;
+    }
+    button.primary {
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+    button.primary:hover { filter: brightness(1.1); }
+    button.secondary {
+      background: var(--secondary);
+      color: var(--secondary-foreground);
+    }
+    button.secondary:hover { filter: brightness(1.15); }
+    button.ghost {
+      background: transparent;
+      color: var(--foreground);
+    }
+    button.ghost:hover { background: hsl(220, 14%, 12%); }
     button.sm { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #eee; }
-    th { color: #555; font-weight: 600; }
-    .lead-id { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; max-width: 200px; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted-foreground); font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    .lead-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+      max-width: 312px;
+      color: var(--foreground);
+    }
     .row-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
-    .response-box { margin-top: 1rem; padding: 1.25rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
-    .response-box.error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    .row-actions button { margin: 0; }
+    .response-box {
+      margin-top: 0;
+      padding: 1.25rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--card-foreground);
+    }
+    .response-box.error {
+      background: hsla(0, 72%, 51%, 0.1);
+      border-color: hsla(0, 72%, 51%, 0.3);
+      color: var(--destructive);
+    }
     .response-box .raw-toggle { font-size: 0.75rem; margin-bottom: 0.5rem; }
-    .response-box .raw-toggle a { color: #64748b; cursor: pointer; }
-    .response-box .raw-toggle a:hover { text-decoration: underline; }
-    .response-box pre.raw { display: none; font-family: ui-monospace, monospace; font-size: 0.8rem; white-space: pre-wrap; word-break: break-all; max-height: 30vh; overflow: auto; margin: 0; }
+    .response-box .raw-toggle a { color: var(--muted-foreground); cursor: pointer; }
+    .response-box .raw-toggle a:hover { color: var(--foreground); }
+    .response-box pre.raw {
+      display: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 30vh;
+      overflow: auto;
+      margin: 0;
+      color: var(--muted-foreground);
+    }
     .response-box.show-raw pre.raw { display: block; }
     .response-box.show-raw .formatted { display: none; }
     .formatted { line-height: 1.5; }
-    .formatted .lead-head { font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem; }
-    .formatted .lead-head strong { color: #0f172a; }
+    .formatted .lead-head { font-size: 0.85rem; color: var(--muted-foreground); margin-bottom: 0.5rem; }
+    .formatted .lead-head strong { color: var(--foreground); }
     .formatted .timeline-list { list-style: none; padding: 0; margin: 0.75rem 0 0 0; }
-    .formatted .timeline-list li { padding: 0.6rem 0; border-bottom: 1px solid #e2e8f0; display: flex; align-items: flex-start; gap: 0.75rem; }
+    .formatted .timeline-list li {
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
     .formatted .timeline-list li:last-child { border-bottom: none; }
-    .formatted .timeline-list .icon { width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
-    .formatted .timeline-list .icon.call { background: #dbeafe; color: #1d4ed8; }
-    .formatted .timeline-list .icon.msg { background: #dcfce7; color: #15803d; }
-    .formatted .timeline-list .time { font-size: 0.8rem; color: #64748b; white-space: nowrap; }
+    .formatted .timeline-list .icon {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    .formatted .timeline-list .icon.call { background: hsla(217, 91%, 60%, 0.2); color: #60a5fa; }
+    .formatted .timeline-list .icon.msg { background: hsla(142, 72%, 50%, 0.2); color: var(--primary); }
+    .formatted .timeline-list .time { font-size: 0.8rem; color: var(--muted-foreground); white-space: nowrap; }
     .formatted .timeline-list .body { flex: 1; }
-    .formatted .timeline-list .body strong { color: #0f172a; }
+    .formatted .timeline-list .body strong { color: var(--foreground); }
     .formatted .proof-summary { display: grid; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; }
-    .formatted .proof-summary span { color: #64748b; }
-    .formatted .proof-summary strong { color: #0f172a; }
-    .formatted .verification { margin-top: 1rem; padding: 0.75rem; background: #ecfdf5; border-radius: 6px; font-size: 0.85rem; color: #065f46; }
-    .formatted .success-msg { font-size: 0.95rem; color: #0f172a; }
-    .formatted .success-msg .tx { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; color: #475569; margin-top: 0.35rem; }
-    .empty-leads { color: #888; font-size: 0.9rem; padding: 0.5rem 0; }
+    .formatted .proof-summary span { color: var(--muted-foreground); }
+    .formatted .proof-summary strong { color: var(--foreground); }
+    .formatted .verification {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: hsla(142, 72%, 50%, 0.1);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      color: var(--primary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .formatted .success-msg { font-size: 0.95rem; color: var(--foreground); }
+    .formatted .success-msg .tx {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+      color: var(--muted-foreground);
+      margin-top: 0.35rem;
+    }
+    .empty-leads { color: var(--muted-foreground); font-size: 0.9rem; padding: 0.5rem 0; text-align: center; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Onchain Lead Journal</h1>
-    <div class="balance" id="balance">0G: —</div>
-  </div>
-
-  <div class="section">
-    <h2>Leads</h2>
-    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-      <input type="text" id="phoneInput" placeholder="+12138207310" style="padding: 0.4rem 0.75rem; font-size: 0.875rem; width: 12rem; border: 1px solid #ccc; border-radius: 6px;" />
-      <button type="button" id="btnMakeCall">Make a call</button>
-      <button type="button" id="btnCreate">Create lead</button>
-      <button type="button" id="btnRefresh" class="sm">Refresh list</button>
+  <div class="app">
+    <div class="header">
+      <h1>Onchain Lead Journal</h1>
+      <div class="balance" id="balance"><strong>—</strong> <span class="muted">0G (testnet)</span></div>
     </div>
-    <table style="margin-top: 0.75rem;">
-      <thead>
-        <tr>
-          <th>Lead ID</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="leadsBody">
-        <tr><td colspan="2" class="empty-leads">Loading…</td></tr>
-      </tbody>
-    </table>
-  </div>
 
-  <div class="section">
-    <h2>Response</h2>
-    <div class="response-box" id="responseBox">
-      <div class="raw-toggle"><a id="rawToggle" style="display: none;">Show raw JSON</a></div>
-      <div class="formatted" id="formatted"></div>
-      <pre class="raw" id="raw"></pre>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Leads</h2>
+      </div>
+      <div class="card-content">
+        <div class="section-actions">
+          <input type="text" id="phoneInput" placeholder="+12138207310" />
+          <button type="button" id="btnMakeCall" class="primary">Make a call</button>
+          <button type="button" id="btnCreate" class="secondary">Create lead</button>
+          <button type="button" id="btnRefresh" class="ghost sm">Refresh list</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Lead ID</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="leadsBody">
+            <tr><td colspan="2" class="empty-leads">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Response</h2>
+      </div>
+      <div class="card-content">
+        <div class="response-box" id="responseBox">
+          <div class="raw-toggle"><a id="rawToggle" style="display: none;">Show raw JSON</a></div>
+          <div class="formatted" id="formatted"></div>
+          <pre class="raw" id="raw"></pre>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -132,7 +297,7 @@
       const root = data.verification_root;
       let html = '<div class="lead-head"><strong>Lead</strong> ' + escapeHtml(data.lead_id) + ' · Created ' + formatDate(data.created_at) + '</div>';
       if (timeline.length === 0) {
-        html += '<p style="margin: 0.5rem 0 0 0; color: #64748b;">No events yet.</p>';
+        html += '<p style="margin: 0.5rem 0 0 0; color: var(--muted-foreground);">No events yet.</p>';
       } else {
         html += '<ul class="timeline-list">';
         timeline.forEach(ev => {
@@ -202,9 +367,9 @@
     async function loadBalance() {
       try {
         const d = await api('/wallet/balance');
-        balanceEl.innerHTML = '<strong>' + (d.balance_og ?? '—') + ' 0G</strong> (testnet)';
+        balanceEl.innerHTML = '<strong>' + (d.balance_og ?? '—') + ' 0G</strong> <span class="muted">(testnet)</span>';
       } catch (e) {
-        balanceEl.textContent = '0G: error';
+        balanceEl.innerHTML = '<strong>error</strong> <span class="muted">0G</span>';
       }
     }
 
@@ -220,10 +385,10 @@
           <tr>
             <td class="lead-id">${escapeHtml(id)}</td>
             <td class="row-actions">
-              <button type="button" class="sm" data-action="call" data-lead-id="${escapeHtml(id)}">call</button>
-              <button type="button" class="sm" data-action="msg" data-lead-id="${escapeHtml(id)}">msg</button>
-              <button type="button" class="sm" data-action="timeline" data-lead-id="${escapeHtml(id)}">timeline</button>
-              <button type="button" class="sm" data-action="proof" data-lead-id="${escapeHtml(id)}">proof</button>
+              <button type="button" class="secondary sm" data-action="call" data-lead-id="${escapeHtml(id)}">call</button>
+              <button type="button" class="secondary sm" data-action="msg" data-lead-id="${escapeHtml(id)}">msg</button>
+              <button type="button" class="secondary sm" data-action="timeline" data-lead-id="${escapeHtml(id)}">timeline</button>
+              <button type="button" class="secondary sm" data-action="proof" data-lead-id="${escapeHtml(id)}">proof</button>
             </td>
           </tr>
         `).join('');
@@ -239,7 +404,7 @@
 
     async function runAction(action, leadId) {
       const labels = { call: 'Posting call…', msg: 'Posting msg…', timeline: 'Loading timeline…', proof: 'Loading proof…' };
-      showResponse('<p style="color:#64748b;margin:0;">' + (labels[action] || '…') + '</p>', '', false);
+      showResponse('<p style="color: var(--muted-foreground); margin: 0;">' + (labels[action] || '…') + '</p>', '', false);
       try {
         let data;
         if (action === 'call') {
@@ -288,7 +453,7 @@
         showResponse('Enter a phone number (e.g. +12138207310).', '', true);
         return;
       }
-      showResponse('<p style="color:#64748b;margin:0;">Starting call…</p>', '', false);
+      showResponse('<p style="color: var(--muted-foreground); margin: 0;">Starting call…</p>', '', false);
       try {
         const data = await api('/calls/start', {
           method: 'POST',
@@ -306,7 +471,7 @@
     };
 
     document.getElementById('btnCreate').onclick = async () => {
-      showResponse('<p style="color:#64748b;margin:0;">Creating lead…</p>', '', false);
+      showResponse('<p style="color: var(--muted-foreground); margin: 0;">Creating lead…</p>', '', false);
       try {
         const leadId = crypto.randomUUID();
         const data = await api('/leads', {
